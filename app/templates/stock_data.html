@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Data</title>
+</head>
+<body>
+    <h1>Stock Data for {{ stock_data['stock_name'] }}</h1>
+    <p>Start Date: {{ stock_data['start_date'] }}</p>
+    <p>Start Price: {{ stock_data['start_price'] }}</p>
+    <p>High: {{ stock_data['high'] }}</p>
+    <p>Low: {{ stock_data['low'] }}</p>
+    <p>Open: {{ stock_data['open'] }}</p>
+    <p>Close: {{ stock_data['close'] }}</p>
+    <p>Volume: {{ stock_data['volume'] }}</p>
+
+    <h2>Stock Price Plot</h2>
+    <img src="data:image/png;base64,{{ plot_base64 }}" alt="Stock Plot">
+
+    <a href="/">Search for another stock</a>
+</body>
+</html>

@@ -1,40 +1,41 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from app.yfinance_fetcher import YFinanceFetcher
-from app.database import Database
-from app.plot_generator import PlotGenerator
+from flask import Flask, render_template, request, jsonify
+from yfinance_fetcher import YFinanceFetcher
+from database import Database
+from plot_generator import PlotGenerator
+from dotenv import load_dotenv
+from flask import Flask, render_template, request
 
-def main():
-    # User input for stock symbol
-    stock_name = input("Enter stock symbol: ")
+load_dotenv()
 
-    # Fetch stock data from yfinance
-    print(f"Fetching data for {stock_name}...")
-    data = YFinanceFetcher.fetch_stock_data(stock_name)
+app = Flask(__name__)
+db = Database()
+yf_fetcher = YFinanceFetcher()
 
-    if data.empty:
-        print(f"No data found for the stock symbol: {stock_name}.")
-        return
+@app.route('/')
+def home():
+    return render_template('index.html')
 
-    # Starting date and starting price (first row of fetched data)
-    starting_date = data['Date'].iloc[0]
-    starting_price = data['Open'].iloc[0]
+@app.route('/get_stock_data', methods=['POST'])
+def get_stock_data():
+    stock_name = request.form.get('stock_name')
 
-    # Save data to the database
-    db = Database()
-    try:
-        print("Storing data in the database...")
-        db.insert_stock_data(stock_name, starting_date, starting_price, data)
+    # Check if stock data exists in the database
+    stock_data = db.get_stock_data(stock_name)
 
-        # Generate and store the plot
-        print("Generating and storing plot...")
-        plot_base64 = PlotGenerator.generate_plot_base64(data, stock_name)
-        db.store_plot_in_database(stock_name, starting_date, plot_base64)
+    if stock_data:
+        # Stock data exists, decode the plot from base64
+        plot_base64 = stock_data['plot']
+    else:
+        # Stock data does not exist, fetch from yfinance and save to the database
+        data = yf_fetcher.fetch_data(stock_name)
+        db.save_stock_data(stock_name, data)
+        plot_base64 = data['plot']
 
-        print("Data and plot stored successfully.")
-    finally:
-        db.close()
+    # Render the stock data and plot
+    return render_template('stock_data.html', stock_data=stock_data or data, plot_base64=plot_base64)
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    app.run(debug=True)
